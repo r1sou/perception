@@ -284,12 +284,18 @@ void PerceptionNode::followme_thread(){
         if((perception_client_->start_follow.load() && !is_followme_running_.load()) || followme_){
             // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             is_followme_running_.store(true);
+            if(!followme_){
+                RCLCPP_INFO_STREAM(this->get_logger(), "start followme");
+            }
         }
         if((!perception_client_->start_follow.load() && is_followme_running_.load()) && !followme_){
             // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             is_followme_running_.store(false);
             engine_->reset_track();
             followme_task_->reset();
+            if(!followme_){
+                RCLCPP_INFO_STREAM(this->get_logger(), "stop followme");
+            }
         }
         if(!is_followme_running_.load()){
             return;
@@ -336,11 +342,17 @@ void PerceptionNode::record_thread(){
         if((perception_client_->start_cam_record.load() && !is_record_running_.load()) || record_){
             // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             is_record_running_.store(true);
+            if(!record_){
+                RCLCPP_INFO_STREAM(this->get_logger(), "start record");
+            }
         }
         if((!perception_client_->start_cam_record.load() && is_record_running_.load()) && !record_){
             // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             is_record_running_.store(false);
             record_task_->release();
+            if(!record_){
+                RCLCPP_INFO_STREAM(this->get_logger(), "stop record");
+            }
         }
         if(!is_record_running_.load()){
             return;
