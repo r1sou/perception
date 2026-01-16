@@ -141,7 +141,7 @@ public:
         if(data["result_code"].is_null() || data["result_code"] != 0){
             return;
         }
-        if(data["cmd_code"] != 0x16){
+        if(data["cmd_code"] == 0x16){
             start_follow.store(data["data"]["follow_op"] == 1);
             start_identify_collect.store(data["data"]["identify_collect_op"] == 1);
             start_cam_record.store(data["data"]["cam_record_op"] == 1);

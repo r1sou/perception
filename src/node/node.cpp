@@ -171,7 +171,7 @@ void PerceptionNode::send_camera_status()
     message["device_id"] = camera_config_["camera"]["device_id"].get<int>();
     message["cmd_code"] = 0x16;
     time_t timestamp = time(NULL);
-
+    message["time_stamp"] = timestamp;
     message["data"]["follow_collect_status"] = perception_client_->start_follow.load() ? 2 : 0;
     message["data"]["identify_collect_status"] = 0;
     message["data"]["cam_record_status"] = perception_client_->start_cam_record.load() ? 1 : 0;
