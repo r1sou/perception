@@ -247,8 +247,8 @@ void PerceptionNode::Display()
     // RCLCPP_INFO_STREAM(this->get_logger(), info.c_str());
 }
 
-bool PerceptionNode::common_preprocess(std::shared_ptr<InferenceData_t> infer_data){
-    auto element = camera_node_->read();
+bool PerceptionNode::common_preprocess(std::shared_ptr<InferenceData_t> infer_data, int task){
+    auto element = task == 0 ? camera_node_->read() : camera_node_->record_buffer->read();
     if(!element || !element->msg1 || !element->msg2){
         RCLCPP_INFO_STREAM(this->get_logger(), "image is empty");
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -301,7 +301,7 @@ void PerceptionNode::followme_thread(){
             return;
         }
         auto infer_data = std::make_shared<InferenceData_t>();
-        if(!common_preprocess(infer_data)){
+        if(!common_preprocess(infer_data, 0)){
             return;
         }
         {
@@ -358,7 +358,7 @@ void PerceptionNode::record_thread(){
             return;
         }
         auto infer_data = std::make_shared<InferenceData_t>();
-        if(!common_preprocess(infer_data)){
+        if(!common_preprocess(infer_data, 1)){
             return;
         }
         {

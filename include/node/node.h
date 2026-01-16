@@ -29,7 +29,7 @@ public:
 public:
     void send_camera_status();
 public:
-    bool common_preprocess(std::shared_ptr<InferenceData_t> infer_data);
+    bool common_preprocess(std::shared_ptr<InferenceData_t> infer_data, int task=0);
     void followme_thread();
     void record_thread();
     void websocket_publish(std::shared_ptr<InferenceData_t> infer_data, bool is_track=false);

@@ -1,7 +1,7 @@
 {
     "record": {
-        "suffix": ".mp4",
-        "fourcc": 2,
+        "suffix": ".avi",
+        "fourcc": 0,
         "save_dir": "/home/sunrise/Desktop/dataset",
         "fps": 10
     }

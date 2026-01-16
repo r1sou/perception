@@ -3,6 +3,7 @@
 void CameraNode::configuration(nlohmann::json &camera_config)
 {
     {
+        record_buffer = std::make_shared<TripletBuffer<sensor_msgs::msg::Image::SharedPtr>>();
         buffer_ = std::make_shared<TripletBuffer<sensor_msgs::msg::Image::SharedPtr>>();
     }
     {
@@ -39,6 +40,13 @@ void CameraNode::configuration(nlohmann::json &camera_config)
 void CameraNode::ImageCallback(const sensor_msgs::msg::Image::SharedPtr msg1, const sensor_msgs::msg::Image::SharedPtr msg2)
 {
     buffer_->update(
+        [msg1, msg2](sensor_msgs::msg::Image::SharedPtr &msg1_, sensor_msgs::msg::Image::SharedPtr &msg2_)
+        {
+            msg1_ = msg1;
+            msg2_ = msg2;
+        }
+    );
+    record_buffer->update(
         [msg1, msg2](sensor_msgs::msg::Image::SharedPtr &msg1_, sensor_msgs::msg::Image::SharedPtr &msg2_)
         {
             msg1_ = msg1;

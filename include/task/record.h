@@ -54,6 +54,7 @@ public:
             image_conversion::nv12_to_bgr(infer_data->input.images[0], image);
         }
         video_writer_->write(image);
+        frame_count++;
     }
     void release() override{
         if(video_writer_){

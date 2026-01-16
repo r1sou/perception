@@ -41,6 +41,9 @@ public:
     void ImageCallback(const sensor_msgs::msg::Image::SharedPtr msg1, const sensor_msgs::msg::Image::SharedPtr msg2);
     std::shared_ptr<TripletBuffer<sensor_msgs::msg::Image::SharedPtr>::Element> read();
 
+public:
+    std::shared_ptr<TripletBuffer<sensor_msgs::msg::Image::SharedPtr>> record_buffer;
+
 private:
     std::shared_ptr<TripletBuffer<sensor_msgs::msg::Image::SharedPtr>> buffer_;
     std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::Image>> sub1_;
