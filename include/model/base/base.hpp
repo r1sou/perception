@@ -92,6 +92,7 @@ public:
     virtual void preprocess(std::shared_ptr<InferenceData_t> infer_data, int index) = 0;
     virtual void postprocess(std::shared_ptr<InferenceData_t> infer_data,int index) = 0;
 public:
+    std::string model_name;
     int input_count, output_count;
     int input_N, input_C, input_H, input_W;
 public:

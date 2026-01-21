@@ -23,6 +23,7 @@ public:
                 auto model = std::make_shared<YOLO>();
                 model->configuration(packed_dnn_handle_, model_path, model_config["params"]);
                 models_.push_back(model);
+                model->model_name = "yolo";
 
                 model_tasks_.push_back(std::unordered_set<std::string>(model_config["tasks"].begin(), model_config["tasks"].end()));
             }
@@ -30,9 +31,9 @@ public:
                 auto model = std::make_shared<BYTETracker>();
                 model->configuration_config(model_config["params"]);
                 models_.push_back(model);
+                model->model_name = "bytetrack";
 
                 model_tasks_.push_back(std::unordered_set<std::string>(model_config["tasks"].begin(), model_config["tasks"].end()));
-
                 track_model_index = models_.size() - 1;
             }
             else if(model_config["model"] == "stereonet" && model_config["launch"].get<bool>()){
@@ -40,6 +41,7 @@ public:
                 auto model = std::make_shared<StereoNet>();
                 model->configuration(packed_dnn_handle_, model_path, model_config["params"]);
                 models_.push_back(model);
+                model->model_name = "stereonet";
 
                 model_tasks_.push_back(std::unordered_set<std::string>(model_config["tasks"].begin(), model_config["tasks"].end()));
             }
@@ -57,16 +59,22 @@ public:
             if(model_tasks_[i].find(task) == model_tasks_[i].end()){
                 continue;
             }
+            if(models_[i]->model_name == "stereonet" && infer_data->input.image_type == INPUT_IMAGE_TYPE::U16C1){
+                continue;
+            }
             {
-                // ScopeTimer t("model: " + config_["models"][i]["model"].get<std::string>() + " preprocess");
+                // ScopeTimer t("model: " + models_[i]->model_name + " preprocess");
+                // RCLCPP_ERROR_STREAM(rclcpp::get_logger("inference"), "model: " + models_[i]->model_name + " preprocess");
                 models_[i]->preprocess(infer_data, i);
             }
             {
-                // ScopeTimer t("model: " + config_["models"][i]["model"].get<std::string>() + " inference");
+                // ScopeTimer t("model: " + models_[i]->model_name + " inference");
+                // RCLCPP_ERROR_STREAM(rclcpp::get_logger("inference"), "model: " + models_[i]->model_name + " inference");
                 models_[i]->inference();
             }
             {
-                // ScopeTimer t("model: " + config_["models"][i]["model"].get<std::string>() + " postprocess");
+                // ScopeTimer t("model: " + models_[i]->model_name + " postprocess");
+                // RCLCPP_ERROR_STREAM(rclcpp::get_logger("inference"), "model: " + models_[i]->model_name + " postprocess");
                 models_[i]->postprocess(infer_data, i);
             }
         }

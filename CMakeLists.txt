@@ -60,8 +60,8 @@ add_executable(${PROJECT_NAME}_node
     src/model/bytetrack/utils.cpp
     src/model/stereonet/stereonet.cpp
     src/model/yolo/yolo.cpp
-    src/node/CameraNode.cpp
-    src/node/node.cpp
+    src/node/CameraNodeConfig.cpp
+    src/node/CameraNodeWorker.cpp
     src/main.cpp
 )
 

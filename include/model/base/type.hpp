@@ -5,7 +5,8 @@
 enum INPUT_IMAGE_TYPE{
     NV12,
     BGR,
-    RGB
+    RGB,
+    U16C1
 };
 
 struct MODEL_INPUT{

@@ -68,3 +68,22 @@ public:
     std::string name;
     std::chrono::system_clock::time_point start;
 };
+
+inline std::string get_string_date(int level) {
+    time_t timestamp = time(NULL);
+    struct tm *tm_time = localtime(&timestamp);
+    std::ostringstream oss;
+    if(level == 0){
+        oss << std::put_time(tm_time, "%Y-%m-%d");
+    }
+    else if(level == 1){
+        oss << std::put_time(tm_time, "%m-%d");
+    }
+    else if(level == 2){
+        oss << std::put_time(tm_time, "%H-%M");
+    }
+    else if(level == 3){
+        oss << std::put_time(tm_time, "%Y-%m-%d_%H-%M");
+    }
+    return oss.str();
+}

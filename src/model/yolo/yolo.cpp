@@ -39,6 +39,10 @@ void YOLO::preprocess(std::shared_ptr<InferenceData_t> infer_data, int index)
     {
         image_conversion::nv12_to_bgr(infer_data->input.images[0], bgr);
     }
+    else if (infer_data->input.image_type == INPUT_IMAGE_TYPE::U16C1)
+    {
+        bgr = infer_data->input.images[0];
+    }
 
     if(infer_data->input.render_image.empty()){
         infer_data->input.render_image = bgr;

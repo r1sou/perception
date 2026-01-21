@@ -124,9 +124,9 @@ public:
     std::thread m_reconnect_thread_;
 };
 
-class PerceptionClient: public BasicWebSocketClient{
+class WebSocketClient: public BasicWebSocketClient{
 public:
-    PerceptionClient(const std::string uri, nlohmann::json config): BasicWebSocketClient(uri, config) {
+    WebSocketClient(const std::string uri, nlohmann::json config): BasicWebSocketClient(uri, config) {
         m_client.set_message_handler(
             [this](websocketpp::connection_hdl hdl, websocketpp::config::asio_client::message_type::ptr msg){
                 this->on_message(hdl, msg); 
@@ -148,7 +148,6 @@ public:
         }
     }
 public:
-    std::atomic<bool> start_recognition{false};
     std::atomic<bool> start_follow{false};
     std::atomic<bool> start_identify_collect{false};
     std::atomic<bool> start_cam_record{false};
@@ -171,9 +170,14 @@ public:
         }
     }
 public:
-    void send_message(const std::string message){
+    void send_message(const std::string &message){
         if(sockfd >= 0){
             sendto(sockfd, message.c_str(), message.size(), 0, (struct sockaddr*)&server_addr, sizeof(server_addr));
+        }
+    }
+    void send_binary_message(const uint8_t* buf, size_t len){
+        if(sockfd >= 0){
+            sendto(sockfd, buf, len, 0, (struct sockaddr*)&server_addr, sizeof(server_addr));
         }
     }
 public:

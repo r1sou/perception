@@ -37,6 +37,10 @@ void StereoNet::preprocess(std::shared_ptr<InferenceData_t> infer_data, int inde
         left_input = infer_data->input.images[0];
         right_input = infer_data->input.images[1];
     }
+    else if (infer_data->input.image_type == INPUT_IMAGE_TYPE::U16C1){
+        RCLCPP_ERROR_STREAM(rclcpp::get_logger("StereoNet"), "INPUT_IMAGE_TYPE::U16C1 is not supported on StereoNet preprocess!");
+        return;
+    }
 
     if (infer_data->input.image_H != model_config_.input_H || infer_data->input.image_W != model_config_.input_W)
     {

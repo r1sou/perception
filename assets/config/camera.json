@@ -1,22 +1,67 @@
 {
-    "camera": {
-        "device_id": 5,
-        "type": "stereo",
-        "topic": {
-            "image1": "/image_left_raw",
-            "image2": "/image_right_raw",
-            "camera_info": "/image_left_raw/camera_info"
+    "cameras": [
+        {
+            "name": "stereo",
+            "device_id": 0,
+            "type": "stereo",
+            "topic": {
+                "image1": "/image_left_raw",
+                "image2": "/image_right_raw",
+                "camera_info": "/image_left_raw/camera_info"
+            },
+            "shape": [640,480],
+            "calib": {
+                "fx": 0.0, "fy": 0.0, "cx": 0.0, "cy": 0.0
+            },
+            "distortion": {
+                "ar_d": [0.0],
+                "ar_k": [0.0],
+                "ar_r": [0.0],
+                "ar_p": [0.0]
+            },
+            "is_master": true
         },
-        "shape": [
-            1280,
-            720
-        ],
-        "calib": {
-            "fx": 611.1805419921875,
-            "fy": 611.1805419921875,
-            "cx": 663.5745849609375,
-            "cy": 337.9166259765625,
-            "baseline": 0.06997
+        {
+            "name": "ascamera_0",
+            "device_id": 1,
+            "type": "depth",
+            "topic": {
+                "image1": "/ascamera_hp60c/camera_publisher/rgb0/image",
+                "image2": "/ascamera_hp60c/camera_publisher/depth0/image_raw",
+                "camera_info": "/ascamera_hp60c/camera_publisher/rgb0/camera_info"
+            },
+            "shape": [640,480],
+            "calib": {
+                "fx": 0.0, "fy": 0.0, "cx": 0.0, "cy": 0.0
+            },
+            "distortion": {
+                "ar_d": [0.0],
+                "ar_k": [0.0],
+                "ar_r": [0.0],
+                "ar_p": [0.0]
+            },
+            "is_master": false
+        },
+        {
+            "name": "ascamera_1",
+            "device_id": 2,
+            "type": "depth",
+            "topic": {
+                "image1": "/ascamera_hp60c/camera_publisher/rgb1/image",
+                "image2": "/ascamera_hp60c/camera_publisher/depth1/image_raw",
+                "camera_info": "/ascamera_hp60c/camera_publisher/rgb1/camera_info"
+            },
+            "shape": [640,480],
+            "calib": {
+                "fx": 0.0, "fy": 0.0, "cx": 0.0, "cy": 0.0
+            },
+            "distortion": {
+                "arr_d": [0.0],
+                "arr_k": [0.0],
+                "arr_r": [0.0],
+                "arr_p": [0.0]
+            },
+            "is_master": false
         }
-    }
+    ]
 }

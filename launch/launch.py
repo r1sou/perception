@@ -27,17 +27,18 @@ def generate_launch_description():
         {"name": "log_level", "default_value": "info"},
 
         {"name": "project_root", "default_value": root},
-        {"name": "client_config_path", "default_value": 'client.json'},
-        {"name": "camera_config_path", "default_value": 'camera.json'},
-        {"name": "model_config_path", "default_value": 'model.json'},
-        {"name": "laser_config_path", "default_value": 'laser.json'},
-        {"name": "record_config_path", "default_value": 'record.json'},
+    
+        {"name": "camera_config_path", "default_value": os.path.join(root, 'config', 'camera.json')},
+        {"name": "laser_config_path", "default_value": os.path.join(root, 'config', 'laser.json')},
+        {"name": "client_config_path", "default_value": os.path.join(root, 'config', 'client.json')},
+        {"name": "model_config_path", "default_value": os.path.join(root, 'config', 'model.json')},
+        {"name": "record_config_path", "default_value": os.path.join(root, 'config', 'record.json')},
+
+        {"name": "show", "default_value": "False"},
+        {"name": "debug", "default_value": "False"},
 
         {"name": "record", "default_value": "False"},
         {"name": "followme", "default_value": "False"},
-
-        {"name": "show", "default_value": "False"},
-        {"name": "debug", "default_value": "False"}
     ]
 
     launch = declare_configurable_parameters(node_params)
@@ -45,7 +46,7 @@ def generate_launch_description():
     launch.append(Node(
         package='perception',
         executable='perception_node',
-        name=LaunchConfiguration('node_name'),
+        # name=LaunchConfiguration('node_name'),
         output='screen',
         parameters=[set_configurable_parameters(node_params)],
         arguments=['--ros-args', '--log-level', LaunchConfiguration('log_level')]
