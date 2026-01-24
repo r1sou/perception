@@ -251,28 +251,31 @@ public:
         }
     }
     void obstacle_thread(std::shared_ptr<CameraNode> camera_node){
-        if(camera_node->camera_config_.camera_type != CAMERA_TYPE::STEREO){
+        if(camera_node->camera_config_.camera_type != CameraType::STEREO){
             RCLCPP_ERROR_STREAM(this->get_logger(), "master camera is not stereo, can not launch obstacle thread!!!");
             return;
         }
         if(websocket_client_->connected.load()){
-            if((websocket_client_->start_obstacle.load() && !is_obstacle_running_.load()) || obstacle_){
+            // if((websocket_client_->start_obstacle.load() && !is_obstacle_running_.load()) || obstacle_){
+            //     is_obstacle_running_.store(true);
+            //     if(!obstacle_){
+            //         if(is_followme_running_.load()){
+            //             is_followme_running_.store(false);
+            //         }
+            //         std::this_thread::sleep_for(std::chrono::milliseconds(500));
+            //         RCLCPP_INFO_STREAM(this->get_logger(), "start obstacle");
+            //     }
+            // }
+            // if((!websocket_client_->start_obstacle.load() && is_obstacle_running_.load()) && !obstacle_){
+            //     is_obstacle_running_.store(false);
+            //     engine_->reset_track();
+            //     obstacle_task_->reset();
+            //     if(!obstacle_){
+            //         RCLCPP_INFO_STREAM(this->get_logger(), "stop obstacle");
+            //     }
+            // }
+            if(obstacle_){
                 is_obstacle_running_.store(true);
-                if(!obstacle_){
-                    if(is_followme_running_.load()){
-                        is_followme_running_.store(false);
-                    }
-                    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-                    RCLCPP_INFO_STREAM(this->get_logger(), "start obstacle");
-                }
-            }
-            if((!websocket_client_->start_obstacle.load() && is_obstacle_running_.load()) && !obstacle_){
-                is_obstacle_running_.store(false);
-                engine_->reset_track();
-                obstacle_task_->reset();
-                if(!obstacle_){
-                    RCLCPP_INFO_STREAM(this->get_logger(), "stop obstacle");
-                }
             }
             if(!is_obstacle_running_.load()){
                 return;

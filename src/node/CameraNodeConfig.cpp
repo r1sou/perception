@@ -11,6 +11,7 @@ void CameraNode::configuration_camera(nlohmann::json &camera_config){
         buffers_["followme_buffer"] = std::make_shared<TripletBuffer<sensor_msgs::msg::Image::SharedPtr>>();
         buffers_["recognize_buffer"] = std::make_shared<TripletBuffer<sensor_msgs::msg::Image::SharedPtr>>();
         buffers_["record_buffer"] = std::make_shared<TripletBuffer<sensor_msgs::msg::Image::SharedPtr>>();
+        buffers_["obstacle_buffer"] = std::make_shared<TripletBuffer<sensor_msgs::msg::Image::SharedPtr>>();
     }
     {
         if(camera_config["type"] == "depth"){
