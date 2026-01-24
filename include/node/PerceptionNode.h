@@ -4,6 +4,7 @@
 
 #include "model/engine.hpp"
 #include "task/followme.h"
+#include "task/obstacle.h"
 
 class PerceptionNode : public rclcpp::Node
 {
@@ -56,6 +57,10 @@ public:
         this->declare_parameter("followme", false);
         this->get_parameter("followme", followme_);
         RCLCPP_INFO_STREAM(this->get_logger(), "followme: " << followme_);
+
+        this->declare_parameter("obstacle", false);
+        this->get_parameter("obstacle", obstacle_);
+        RCLCPP_INFO_STREAM(this->get_logger(), "obstacle: " << obstacle_);
     }
     void configuration(){
         {
@@ -122,6 +127,10 @@ public:
             followme_task_ = std::make_shared<FollowMe>();
             followme_task_->init_task();
         }
+        {
+            obstacle_task_ = std::make_shared<Obstacle>();
+            obstacle_task_->init_task();
+        }
         RCLCPP_INFO_STREAM(this->get_logger(), "config task Finish");
     }
 
@@ -130,6 +139,10 @@ public:
             if((websocket_client_->start_follow.load() && !is_followme_running_.load()) || followme_){
                 is_followme_running_.store(true);
                 if(!followme_){
+                    if(is_obstacle_running_.load()){
+                        is_obstacle_running_.store(false);
+                    }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(500));
                     RCLCPP_INFO_STREAM(this->get_logger(), "start followme");
                 }
             }
@@ -237,6 +250,120 @@ public:
             websocket_client_->send_message(message.dump());
         }
     }
+    void obstacle_thread(std::shared_ptr<CameraNode> camera_node){
+        if(camera_node->camera_config_.camera_type != CAMERA_TYPE::STEREO){
+            RCLCPP_ERROR_STREAM(this->get_logger(), "master camera is not stereo, can not launch obstacle thread!!!");
+            return;
+        }
+        if(websocket_client_->connected.load()){
+            if((websocket_client_->start_obstacle.load() && !is_obstacle_running_.load()) || obstacle_){
+                is_obstacle_running_.store(true);
+                if(!obstacle_){
+                    if(is_followme_running_.load()){
+                        is_followme_running_.store(false);
+                    }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                    RCLCPP_INFO_STREAM(this->get_logger(), "start obstacle");
+                }
+            }
+            if((!websocket_client_->start_obstacle.load() && is_obstacle_running_.load()) && !obstacle_){
+                is_obstacle_running_.store(false);
+                engine_->reset_track();
+                obstacle_task_->reset();
+                if(!obstacle_){
+                    RCLCPP_INFO_STREAM(this->get_logger(), "stop obstacle");
+                }
+            }
+            if(!is_obstacle_running_.load()){
+                return;
+            }
+            auto infer_data = std::make_shared<InferenceData_t>();
+            if(!camera_node->infer_common_process(infer_data,"obstacle_buffer")){
+                return;
+            }
+            {
+                ScopeTimer t("obstacle inference");
+                obstacle_task_->run(infer_data, engine_);
+            }
+            {
+                publish_thread_pool_.thread_pool_->detach_task(
+                    [this, infer_data, camera_node](){
+                        publish_obstacle_target(infer_data, camera_node);
+                    }
+                );
+            }
+        }
+    }
+    void publish_obstacle_target(std::shared_ptr<InferenceData_t> infer_data, std::shared_ptr<CameraNode> camera_node){
+        if(infer_data->output.stereo_output.disparity.empty()){
+            return;
+        }
+
+        auto laserscan_message = camera_node->laserscan_message_;
+        {
+            time_t timestamp = time(NULL);
+            laserscan_message["time_stamp"] = timestamp;
+        }
+
+        auto &camera_config = camera_node->camera_config_;
+        auto &laser_config = camera_node->laser_config_;
+        int down_sample_ratio = laser_config.down_sample_ratio;
+
+        auto &disparity = infer_data->output.stereo_output.disparity;
+
+        float fx       = camera_config.fx;
+        float fy       = camera_config.fy;
+        float cx       = camera_config.cx;
+        float cy       = camera_config.cy;
+        float baseline = camera_config.baseline;
+
+        fx = disparity.rows / infer_data->input.image_H * fx;
+        fy = disparity.cols / infer_data->input.image_W * fy;
+        cx = disparity.rows / infer_data->input.image_H * cx;
+        cy = disparity.cols / infer_data->input.image_W * cy;
+
+        float x_ratio = infer_data->input.image_W / disparity.cols;
+        float y_ratio = infer_data->input.image_H / disparity.rows;
+
+        for (int v = 0; v < disparity.rows; v += down_sample_ratio){
+            for (int u = 0; u < disparity.cols; u += down_sample_ratio){
+                int real_u = u * x_ratio;
+                int real_v = v * y_ratio;
+
+                float disparity_value = disparity.at<float>(v, u);
+                float z = baseline * fx / disparity_value;
+                float x = z * (cx - real_u) / fx;
+                float y = z * (cy - real_v) / fy;
+
+                if (std::isnan(x) || std::isnan(y) || std::isnan(z))
+                {
+                    continue;
+                }
+                if (y > laser_config.max_height || y < laser_config.min_height)
+                {
+                    continue;
+                }
+                double range = hypot(x, z);
+                if (range > laser_config.range_max || range < laser_config.range_min)
+                {
+                    continue;
+                }
+                double angle = std::atan2(x, z);
+                if (angle > laser_config.angle_max || angle < laser_config.angle_min)
+                {
+                    continue;
+                }
+                int index = (angle - laser_config.angle_min) / laser_config.angle_increment;
+                if (range < laserscan_message["data"]["ranges"][index])
+                {
+                    laserscan_message["data"]["ranges"][index] = range;
+                }
+            }
+        }
+        {
+            camera_node->udp_client_->send_message(laserscan_message.dump());
+        }
+    }
     void start(){
         executor_ = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
         for(auto &camera_node : camera_nodes_){
@@ -270,6 +397,24 @@ public:
                 }
             )
         );
+        worker_threads_.emplace_back(
+            std::make_shared<std::thread>(
+                [this](){
+                    rclcpp::WallRate rate(10);
+                    std::shared_ptr<CameraNode> camera_node;
+                    for(int i = 0; i < camera_nodes_.size(); i++){
+                        if(camera_nodes_[i]->camera_config_.is_master){
+                            camera_node = camera_nodes_[i];
+                        }
+                    }
+                    while(rclcpp::ok()){
+                        obstacle_thread(camera_node);
+                        rate.sleep();
+                    }
+                }
+            )
+        );
+
     }
     void stop(){
         if (executor_){
@@ -302,7 +447,7 @@ public:
         // }
     }
 public:
-    bool show_, debug_, record_, followme_;
+    bool show_, debug_, record_, followme_, obstacle_;
 
     std::string project_root_;
 
@@ -329,7 +474,10 @@ public:
 private:
     std::shared_ptr<Engine> engine_;
     std::shared_ptr<FollowMe> followme_task_;
+    std::shared_ptr<Obstacle> obstacle_task_;
+    
     std::atomic<bool> is_followme_running_;
+    std::atomic<bool> is_obstacle_running_;
 private:
     std::shared_ptr<rclcpp::executors::MultiThreadedExecutor> executor_;
     std::thread spin_thread_;

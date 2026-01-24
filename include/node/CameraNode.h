@@ -124,7 +124,7 @@ public:
     std::shared_ptr<WebSocketClient> websocket_client_;
     std::shared_ptr<UDPClient> udp_client_;
 
-private:
+public:
     nlohmann::json laserscan_message_, camera_info_message_, image_message_;
 
 public:
