@@ -57,10 +57,6 @@ public:
         this->declare_parameter("followme", false);
         this->get_parameter("followme", followme_);
         RCLCPP_INFO_STREAM(this->get_logger(), "followme: " << followme_);
-
-        this->declare_parameter("obstacle", false);
-        this->get_parameter("obstacle", obstacle_);
-        RCLCPP_INFO_STREAM(this->get_logger(), "obstacle: " << obstacle_);
     }
     void configuration(){
         {
@@ -141,8 +137,8 @@ public:
                 if(!followme_){
                     if(is_obstacle_running_.load()){
                         is_obstacle_running_.store(false);
+                        std::this_thread::sleep_for(std::chrono::milliseconds(200));
                     }
-                    std::this_thread::sleep_for(std::chrono::milliseconds(500));
                     RCLCPP_INFO_STREAM(this->get_logger(), "start followme");
                 }
             }
@@ -191,6 +187,13 @@ public:
                     }
                 );
                 // publish_followme_target(infer_data, camera_node);
+            }
+            {
+                publish_thread_pool_.thread_pool_->detach_task(
+                    [this, infer_data, camera_node](){
+                        publish_obstacle_target(infer_data, camera_node);
+                    }
+                );
             }
         }
     }
@@ -256,6 +259,12 @@ public:
             return;
         }
         if(websocket_client_->connected.load()){
+            if(is_followme_running_.load() || is_recognize_running_.load()){
+                is_obstacle_running_.store(false);
+            }
+            else{
+                is_obstacle_running_.store(true);
+            }
             // if((websocket_client_->start_obstacle.load() && !is_obstacle_running_.load()) || obstacle_){
             //     is_obstacle_running_.store(true);
             //     if(!obstacle_){
@@ -274,9 +283,9 @@ public:
             //         RCLCPP_INFO_STREAM(this->get_logger(), "stop obstacle");
             //     }
             // }
-            if(obstacle_){
-                is_obstacle_running_.store(true);
-            }
+            // if(obstacle_){
+            //     is_obstacle_running_.store(true);
+            // }
             if(!is_obstacle_running_.load()){
                 return;
             }
@@ -450,7 +459,7 @@ public:
         // }
     }
 public:
-    bool show_, debug_, record_, followme_, obstacle_;
+    bool show_, debug_, record_, followme_;
 
     std::string project_root_;
 
@@ -480,6 +489,7 @@ private:
     std::shared_ptr<Obstacle> obstacle_task_;
     
     std::atomic<bool> is_followme_running_;
+    std::atomic<bool> is_recognize_running_;
     std::atomic<bool> is_obstacle_running_;
 private:
     std::shared_ptr<rclcpp::executors::MultiThreadedExecutor> executor_;

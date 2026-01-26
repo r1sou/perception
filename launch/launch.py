@@ -38,8 +38,7 @@ def generate_launch_description():
         {"name": "debug", "default_value": "False"},
 
         {"name": "record", "default_value": "False"},
-        {"name": "followme", "default_value": "False"},
-        {"name": "obstacle", "default_value": "False"}
+        {"name": "followme", "default_value": "False"}
     ]
 
     launch = declare_configurable_parameters(node_params)
