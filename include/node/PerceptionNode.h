@@ -150,6 +150,7 @@ public:
                 }
             }
             if(!camera_node->is_followme_running_.load()){
+                cv::destroyAllWindows();
                 return;
             }
             auto infer_data = std::make_shared<InferenceData_t>();
