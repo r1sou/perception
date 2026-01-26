@@ -143,6 +143,8 @@ public:
     bool record_ = false, followme_ = false, show_ = false;
     std::atomic<bool> is_record_running_;
     std::atomic<bool> is_followme_running_;
+    std::atomic<bool> is_recognize_running_;
+    std::atomic<bool> is_obstacle_running_;
 private:
     int frame_count_ = 0;
     std::string save_path_;

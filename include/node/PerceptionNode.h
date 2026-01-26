@@ -129,28 +129,27 @@ public:
         }
         RCLCPP_INFO_STREAM(this->get_logger(), "config task Finish");
     }
-
     void followme_thread(std::shared_ptr<CameraNode> camera_node){
-        if(websocket_client_->connected.load()){
-            if((websocket_client_->start_follow.load() && !is_followme_running_.load()) || followme_){
-                is_followme_running_.store(true);
+        if(camera_node->websocket_client_->connected.load()){
+            if((camera_node->websocket_client_->start_follow.load() && !camera_node->is_followme_running_.load()) || followme_){
+                camera_node->is_followme_running_.store(true);
                 if(!followme_){
-                    if(is_obstacle_running_.load()){
-                        is_obstacle_running_.store(false);
+                    if(camera_node->is_obstacle_running_.load()){
+                        camera_node->is_obstacle_running_.store(false);
                         std::this_thread::sleep_for(std::chrono::milliseconds(200));
                     }
                     RCLCPP_INFO_STREAM(this->get_logger(), "start followme");
                 }
             }
-            if((!websocket_client_->start_follow.load() && is_followme_running_.load()) && !followme_){
-                is_followme_running_.store(false);
+            if((!camera_node->websocket_client_->start_follow.load() && camera_node->is_followme_running_.load()) && !followme_){
+                camera_node->is_followme_running_.store(false);
                 engine_->reset_track();
                 followme_task_->reset();
                 if(!followme_){
                     RCLCPP_INFO_STREAM(this->get_logger(), "stop followme");
                 }
             }
-            if(!is_followme_running_.load()){
+            if(!camera_node->is_followme_running_.load()){
                 return;
             }
             auto infer_data = std::make_shared<InferenceData_t>();
@@ -258,12 +257,12 @@ public:
             RCLCPP_ERROR_STREAM(this->get_logger(), "master camera is not stereo, can not launch obstacle thread!!!");
             return;
         }
-        if(websocket_client_->connected.load()){
-            if(is_followme_running_.load() || is_recognize_running_.load()){
-                is_obstacle_running_.store(false);
+        if(camera_node->websocket_client_->connected.load()){
+            if(camera_node->is_followme_running_.load() || camera_node->is_recognize_running_.load()){
+                camera_node->is_obstacle_running_.store(false);
             }
             else{
-                is_obstacle_running_.store(true);
+                camera_node->is_obstacle_running_.store(true);
             }
             // if((websocket_client_->start_obstacle.load() && !is_obstacle_running_.load()) || obstacle_){
             //     is_obstacle_running_.store(true);
@@ -286,7 +285,7 @@ public:
             // if(obstacle_){
             //     is_obstacle_running_.store(true);
             // }
-            if(!is_obstacle_running_.load()){
+            if(!camera_node->is_obstacle_running_.load()){
                 return;
             }
             auto infer_data = std::make_shared<InferenceData_t>();
