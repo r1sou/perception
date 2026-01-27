@@ -1,0 +1,25 @@
+{
+    "cameras": [
+        {
+            "name": "stereo",
+            "device_id": 5,
+            "type": "stereo",
+            "topic": {
+                "image1": "/image_left_raw",
+                "image2": "/image_right_raw",
+                "camera_info": "/image_left_raw/camera_info"
+            },
+            "shape": [640,480],
+            "calib": {
+                "fx": 0.0, "fy": 0.0, "cx": 0.0, "cy": 0.0
+            },
+            "distortion": {
+                "ar_d": [0.0],
+                "ar_k": [0.0],
+                "ar_r": [0.0],
+                "ar_p": [0.0]
+            },
+            "is_master": true
+        }
+    ]
+}
