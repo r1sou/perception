@@ -194,7 +194,7 @@ void CameraNode::publish_laserscan(){
         }
     }
     {
-        RCLCPP_DEBUG_STREAM(this->get_logger(), "depth camera publish laserscan");
+        RCLCPP_INFO_STREAM(this->get_logger(), "depth camera publish laserscan");
     }
     {
         // ScopeTimer timer(fmt::format("camera {} send_laserscan", camera_config_.device_id));
@@ -209,6 +209,7 @@ void CameraNode::publish_camera_info(){
     if(!udp_client_){
         return;
     }
+    return;
     // ScopeTimer timer(fmt::format("camera {} publish_camera_info", camera_config_.device_id));
     {
         time_t timestamp = time(NULL);
