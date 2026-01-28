@@ -149,9 +149,10 @@ void CameraNode::publish_laserscan(){
         return;
     }
     // ScopeTimer timer(fmt::format("camera {} publish_laserscan", camera_config_.device_id));
+    auto laserscan_message = laserscan_message_;
     {
         time_t timestamp = time(NULL);
-        laserscan_message_["time_stamp"] = timestamp;
+        laserscan_message["time_stamp"] = timestamp;
     }
     // cv::Mat image = cv_bridge::toCvShare(element->msg1, "bgr8")->image;
     cv::Mat depth = cv_bridge::toCvShare(element->msg2, "16UC1")->image;
@@ -185,9 +186,9 @@ void CameraNode::publish_laserscan(){
                         continue;
                     }
                     int index = (angle - laser_config_.angle_min) / laser_config_.angle_increment;
-                    if (range < laserscan_message_["data"]["ranges"][index])
+                    if (range < laserscan_message["data"]["ranges"][index])
                     {
-                        laserscan_message_["data"]["ranges"][index] = range;
+                        laserscan_message["data"]["ranges"][index] = range;
                     }
                 }
             }
@@ -198,7 +199,7 @@ void CameraNode::publish_laserscan(){
     }
     {
         // ScopeTimer timer(fmt::format("camera {} send_laserscan", camera_config_.device_id));
-        udp_client_->send_message(laserscan_message_.dump());
+        udp_client_->send_message(laserscan_message.dump());
     }
 }
 
