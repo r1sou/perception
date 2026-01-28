@@ -29,7 +29,7 @@ public:
         worker_threads_.emplace_back(
             std::make_shared<std::thread>(
                 [this](){
-                    rclcpp::WallRate rate(10);
+                    rclcpp::WallRate rate(publish_laserscan_fps_);
                     while(rclcpp::ok()){
                         publish_laserscan();
                         rate.sleep();
@@ -117,13 +117,13 @@ public:
         }
     }
 public:
+    int publish_laserscan_fps_ = 5;
     CameraConfig camera_config_;
     LaserConfig laser_config_;
     RecordConfig record_config_;
 public:
     std::shared_ptr<WebSocketClient> websocket_client_;
     std::shared_ptr<UDPClient> udp_client_;
-
 public:
     nlohmann::json laserscan_message_, camera_info_message_, image_message_;
 

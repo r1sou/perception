@@ -19,7 +19,8 @@
                 "ar_r": [0.0],
                 "ar_p": [0.0]
             },
-            "is_master": true
+            "is_master": true,
+            "publish_laserscan_fps": 5
         }
     ]
 }

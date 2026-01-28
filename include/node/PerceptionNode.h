@@ -419,9 +419,14 @@ public:
                             camera_node = camera_nodes_[i];
                         }
                     }
-                    while(rclcpp::ok()){
-                        obstacle_thread(camera_node);
-                        rate.sleep();
+                    if(camera_node->camera_config_.camera_type != CameraType::STEREO){
+                        RCLCPP_ERROR_STREAM(this->get_logger(), "master camera is not stereo, can not launch obstacle thread!!!");
+                    }
+                    else{
+                        while(rclcpp::ok()){
+                            obstacle_thread(camera_node);
+                            rate.sleep();
+                        }
                     }
                 }
             )

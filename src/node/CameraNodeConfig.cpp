@@ -70,6 +70,8 @@ void CameraNode::configuration_camera(nlohmann::json &camera_config){
         }
         camera_config_.name = camera_config["topic"]["image1"].get<std::string>();
         camera_config_.is_master = camera_config.value("is_master", false);
+
+        publish_laserscan_fps_ = camera_config.value("publish_laserscan_fps", 5);
     }
 }
 
