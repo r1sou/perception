@@ -19,7 +19,7 @@ void CameraNode::send_camera_status(){
     else{
         message["data"]["follow_collect_status"] = 0;
     }
-    message["data"]["identify_collect_status"] = 0;
+    message["data"]["identify_collect_status"] = websocket_client_->start_identify_collect.load() ? 1 : 0;
     message["data"]["cam_record_status"] = websocket_client_->start_cam_record.load() ? 1 : 0;
     websocket_client_->send_message(message.dump());
 }

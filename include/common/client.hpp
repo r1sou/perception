@@ -145,6 +145,9 @@ public:
             start_follow.store(data["data"]["follow_op"] == 1);
             start_identify_collect.store(data["data"]["identify_collect_op"] == 1);
             start_cam_record.store(data["data"]["cam_record_op"] == 1);
+            if(!start_cam_record.load() && start_identify_collect.load()){
+                start_cam_record.store(true);
+            }
         }
     }
 public:
