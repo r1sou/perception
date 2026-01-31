@@ -147,6 +147,16 @@ public:
                 followme_task_->reset();
                 if(!followme_){
                     RCLCPP_INFO_STREAM(this->get_logger(), "stop followme");
+                    {
+                        time_t timestamp = time(NULL);
+                        std::filesystem::create_directory("/home/sunrise/Desktop/trajactory");
+                        std::ofstream ofs(fmt::format("/home/sunrise/Desktop/trajactory/{}.txt", timestamp));
+                        for(auto &trajactory : trajactory_){
+                            ofs << trajactory[0] << " " << trajactory[1] << std::endl;
+                        }
+                    }
+                    trajactory_.clear();
+                    last_trajactory_ = 0.0;
                 }
             }
             if(!camera_node->is_followme_running_.load()){
@@ -230,6 +240,15 @@ public:
                 else{
                     X = config.fx * config.baseline / infer_data->output.stereo_output.disparity.at<float>(box_center_y, box_center_x);
                 }
+                {
+                    if(X <= 0.1 && last_trajactory_ != 0.0){
+                        X = last_trajactory_;
+                    }
+                    else{
+                        last_trajactory_ = X;
+                    }
+                }
+
                 float Y = (config.cx - box_center_x) * X / config.fx;
                 float Z = (config.cy - box_center_y) * X / config.fy;
 
@@ -245,6 +264,8 @@ public:
                     {"loc", fmt::format("{:.2f},{:.2f},{:2f}", X, Y, Z)},
                     {"size", fmt::format("{:.2f},{:.2f}", W, H)}}
                 );
+
+                trajactory_.push_back({X, Y});
                 break;
             }
             message["data"] = data;
@@ -499,4 +520,8 @@ private:
 private:
     std::shared_ptr<rclcpp::executors::MultiThreadedExecutor> executor_;
     std::thread spin_thread_;
+
+private:
+    float last_trajactory_;
+    std::vector<std::vector<float>> trajactory_;
 };
