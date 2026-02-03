@@ -68,10 +68,13 @@ void CameraNode::configuration_camera(nlohmann::json &camera_config){
             camera_config_.arr_r = camera_config["distortion"]["arr_r"].get<std::vector<double>>();
             camera_config_.arr_p = camera_config["distortion"]["arr_p"].get<std::vector<double>>();
         }
-        camera_config_.name = camera_config["topic"]["image1"].get<std::string>();
+        camera_config_.name = camera_config["name"].get<std::string>();
         camera_config_.is_master = camera_config.value("is_master", false);
+        camera_config_.frame_id = camera_config["topic"]["frame_id"].get<std::string>();
 
         publish_laserscan_fps_ = camera_config.value("publish_laserscan_fps", 5);
+
+        configuration_static_tf();
     }
 }
 
@@ -187,4 +190,36 @@ void CameraNode::configuration_record(nlohmann::json &record_config){
     else if(record_config_.fourcc == 3){
         record_config_.fourcc = cv::VideoWriter::fourcc('h', 'v', 'c', '1');
     }
+}
+
+void CameraNode::configuration_static_tf(){
+    if(camera_config_.camera_type == CameraType::MONO){
+        return;
+    }
+
+    {
+        laser_scan_pub_ = this->create_publisher<sensor_msgs::msg::LaserScan>(
+            fmt::format("{}/laserscan", camera_config_.name), 10
+        );
+        point_cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
+            fmt::format("{}/point_cloud", camera_config_.name), 10
+        );
+    }
+
+    if(camera_config_.camera_type == CameraType::DEPTH){
+        return;
+    }
+
+    static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
+    geometry_msgs::msg::TransformStamped transformStamped;
+
+    transformStamped.header.stamp = this->now();
+    transformStamped.header.frame_id = camera_config_.frame_id;
+    transformStamped.child_frame_id = fmt::format("{}_child", camera_config_.frame_id);
+
+    transformStamped.transform.translation.x = 0.0;
+    transformStamped.transform.translation.y = 0.0;
+    transformStamped.transform.translation.z = 0.0;
+
+    static_broadcaster_->sendTransform(transformStamped);
 }

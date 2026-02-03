@@ -160,7 +160,9 @@ public:
                 }
             }
             if(!camera_node->is_followme_running_.load()){
-                cv::destroyAllWindows();
+                if(cv::getWindowProperty("follow window", cv::WND_PROP_VISIBLE) > 1){
+                    cv::destroyWindow("follow window");
+                }
                 return;
             }
             auto infer_data = std::make_shared<InferenceData_t>();
@@ -186,7 +188,7 @@ public:
                     }
                 }
                 if(show_){
-                    cv::imshow("inference", infer_data->input.render_image);
+                    cv::imshow("follow window", infer_data->input.render_image);
                     cv::waitKey(1);
                 }
             }
@@ -286,27 +288,6 @@ public:
             else{
                 camera_node->is_obstacle_running_.store(true);
             }
-            // if((websocket_client_->start_obstacle.load() && !is_obstacle_running_.load()) || obstacle_){
-            //     is_obstacle_running_.store(true);
-            //     if(!obstacle_){
-            //         if(is_followme_running_.load()){
-            //             is_followme_running_.store(false);
-            //         }
-            //         std::this_thread::sleep_for(std::chrono::milliseconds(500));
-            //         RCLCPP_INFO_STREAM(this->get_logger(), "start obstacle");
-            //     }
-            // }
-            // if((!websocket_client_->start_obstacle.load() && is_obstacle_running_.load()) && !obstacle_){
-            //     is_obstacle_running_.store(false);
-            //     engine_->reset_track();
-            //     obstacle_task_->reset();
-            //     if(!obstacle_){
-            //         RCLCPP_INFO_STREAM(this->get_logger(), "stop obstacle");
-            //     }
-            // }
-            // if(obstacle_){
-            //     is_obstacle_running_.store(true);
-            // }
             if(!camera_node->is_obstacle_running_.load()){
                 return;
             }
@@ -327,10 +308,13 @@ public:
             }
         }
     }
+
     void publish_obstacle_target(std::shared_ptr<InferenceData_t> infer_data, std::shared_ptr<CameraNode> camera_node){
         if(infer_data->output.stereo_output.disparity.empty()){
             return;
         }
+
+        ScopeTimer t("obstacle publish");
 
         auto laserscan_message = camera_node->laserscan_message_;
         {
@@ -358,6 +342,31 @@ public:
         float x_ratio = infer_data->input.image_W / disparity.cols;
         float y_ratio = infer_data->input.image_H / disparity.rows;
 
+        auto scan_msg = std::make_unique<sensor_msgs::msg::LaserScan>();
+        {
+            scan_msg->header.stamp = this->now();
+            scan_msg->header.frame_id = camera_config.frame_id;
+        }
+        {
+            scan_msg->angle_min = laser_config.angle_min;
+            scan_msg->angle_max = laser_config.angle_max;
+            scan_msg->angle_increment = laser_config.angle_increment;
+            scan_msg->time_increment = 0.0;
+            scan_msg->scan_time = laser_config.scan_time;
+            scan_msg->range_min = laser_config.range_min;
+            scan_msg->range_max = laser_config.range_max;
+            uint32_t ranges_size = std::ceil(
+                (scan_msg->angle_max - scan_msg->angle_min) / scan_msg->angle_increment
+            );
+            if (laser_config.use_inf)
+            {
+                scan_msg->ranges.assign(ranges_size, std::numeric_limits<double>::infinity());
+            }
+            else
+            {
+                scan_msg->ranges.assign(ranges_size, scan_msg->range_max + laser_config.inf_epsilon);
+            }
+        }
         for (int v = 0; v < disparity.rows; v += down_sample_ratio){
             for (int u = 0; u < disparity.cols; u += down_sample_ratio){
                 int real_u = u * x_ratio;
@@ -390,10 +399,16 @@ public:
                 if (range < laserscan_message["data"]["ranges"][index])
                 {
                     laserscan_message["data"]["ranges"][index] = range;
+                    scan_msg->ranges[index] = range;
                 }
             }
         }
         {
+            camera_node->laser_scan_pub_->publish(std::move(scan_msg));
+        }
+        {
+            
+            laserscan_message["publish_time_ms"] = 
             camera_node->udp_client_->send_message(laserscan_message.dump());
         }
     }
@@ -452,7 +467,6 @@ public:
                 }
             )
         );
-
     }
     void stop(){
         if (executor_){
@@ -469,20 +483,31 @@ public:
             }
         }
         worker_threads_.clear();
+        cv::destroyAllWindows();
     }
 public:
     void Display(){
-        // if(!debug_){
-        //     return;
-        // }
-        // for(auto &camera_node : camera_nodes_){
-        //     auto element = camera_node->buffers_["display_buffer"]->read();
-        //     if(element && element->msg1){
-        //         cv::Mat image = cv_bridge::toCvShare(element->msg1, "bgr8")->image;
-        //         cv::imshow(camera_node->camera_config_.name, image);
-        //         cv::waitKey(1);
-        //     }
-        // }
+        if(!debug_){
+            return;
+        }
+        for(auto &camera_node : camera_nodes_){
+            auto element = camera_node->buffers_["display_buffer"]->read();
+            if(element && element->msg1){
+                cv::Mat image;
+                if(element->msg1->encoding == "bgr8"){
+                    image = cv_bridge::toCvShare(element->msg1, "bgr8")->image;
+                }
+                else if(element->msg1->encoding == "nv12"){
+                    cv::Mat nv12 = cv::Mat(element->msg1->height * 3 / 2, element->msg1->width, CV_8UC1, element->msg1->data.data(), element->msg1->step);
+                    image_conversion::nv12_to_bgr(nv12, image);
+                }
+                else{
+                    RCLCPP_ERROR_STREAM(this->get_logger(), "unknown encoding: " << element->msg1->encoding);
+                }
+                cv::imshow("display window", image);
+                cv::waitKey(1);
+            }
+        }
     }
 public:
     bool show_, debug_, record_, followme_;

@@ -43,6 +43,7 @@ struct CameraConfig
     int image_width = 0, image_height = 0;
     std::vector<double> arr_d, arr_k, arr_r, arr_p;
     bool is_master = false;
+    std::string frame_id;
 };
 
 struct LaserConfig

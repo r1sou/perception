@@ -21,6 +21,7 @@ public:
     void configuration_laser(nlohmann::json &laser_config);
     void configuration_client(nlohmann::json &client_config);
     void configuration_record(nlohmann::json &record_config);
+    void configuration_static_tf();
     void start(){
         {
             websocket_client_->start();
@@ -59,6 +60,7 @@ public:
         //         }
         //     )
         // );
+
         // websocket send
         worker_threads_.emplace_back(
             std::make_shared<std::thread>(
@@ -149,7 +151,7 @@ private:
     int frame_count_ = 0;
     std::string save_path_;
     std::shared_ptr<cv::VideoWriter> video_writer_;
-private:
+public:
     std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_broadcaster_;
     std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::LaserScan>> laser_scan_pub_;
     std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::PointCloud2>> point_cloud_pub_;

@@ -3,7 +3,7 @@
     "models": [
         {
             "model": "stereonet",
-            "model_path": "weights/stereo/DStereoV2.4_int8.bin",
+            "model_path": "weights/stereo/DStereoV2.5_int16_544_448.bin",
             "tasks": ["obstacle","recognize","followme"],
             "launch": true
         },
@@ -58,3 +58,4 @@
         }
     }
 }
+

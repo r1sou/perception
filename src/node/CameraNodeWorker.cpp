@@ -154,6 +154,32 @@ void CameraNode::publish_laserscan(){
         time_t timestamp = time(NULL);
         laserscan_message["time_stamp"] = timestamp;
     }
+
+    auto scan_msg = std::make_unique<sensor_msgs::msg::LaserScan>();
+    {
+        scan_msg->header = element->msg2->header;
+    }
+    {
+        scan_msg->angle_min = laser_config_.angle_min;
+        scan_msg->angle_max = laser_config_.angle_max;
+        scan_msg->angle_increment = laser_config_.angle_increment;
+        scan_msg->time_increment = 0.0;
+        scan_msg->scan_time = laser_config_.scan_time;
+        scan_msg->range_min = laser_config_.range_min;
+        scan_msg->range_max = laser_config_.range_max;
+        uint32_t ranges_size = std::ceil(
+            (scan_msg->angle_max - scan_msg->angle_min) / scan_msg->angle_increment
+        );
+        if (laser_config_.use_inf)
+        {
+            scan_msg->ranges.assign(ranges_size, std::numeric_limits<double>::infinity());
+        }
+        else
+        {
+            scan_msg->ranges.assign(ranges_size, scan_msg->range_max + laser_config_.inf_epsilon);
+        }
+    }
+
     // cv::Mat image = cv_bridge::toCvShare(element->msg1, "bgr8")->image;
     cv::Mat depth = cv_bridge::toCvShare(element->msg2, "16UC1")->image;
     {
@@ -189,13 +215,14 @@ void CameraNode::publish_laserscan(){
                     if (range < laserscan_message["data"]["ranges"][index])
                     {
                         laserscan_message["data"]["ranges"][index] = range;
+                        scan_msg->ranges[index] = range;
                     }
                 }
             }
         }
     }
     {
-        RCLCPP_INFO_STREAM(this->get_logger(), "depth camera publish laserscan");
+        laser_scan_pub_->publish(std::move(scan_msg));
     }
     {
         // ScopeTimer timer(fmt::format("camera {} send_laserscan", camera_config_.device_id));
