@@ -98,20 +98,38 @@ void CameraNode::record_thread(){
                 save_path_ = fmt::format("{}/camera-{}", record_config_.save_dir, camera_config_.device_id);
                 std::filesystem::create_directories(save_path_);
                 save_path_ += "/" + get_string_date(3) + record_config_.suffix;
+                int width = camera_config_.camera_type == CameraType::STEREO ? record_config_.image_width * 2 : record_config_.image_width;
                 video_writer_ = std::make_shared<cv::VideoWriter>(
                     save_path_, record_config_.fourcc, record_config_.fps, 
-                    cv::Size(record_config_.image_width, record_config_.image_height)
+                    cv::Size(width, record_config_.image_height)
                 );
             }
-            cv::Mat write_image;
-            if(infer_data->input.image_type != INPUT_IMAGE_TYPE::NV12){
-                write_image = infer_data->input.images[0];
+            if(camera_config_.camera_type != CameraType::STEREO){
+                cv::Mat write_image;
+                if(infer_data->input.image_type != INPUT_IMAGE_TYPE::NV12){
+                    write_image = infer_data->input.images[0];
+                }
+                else{
+                    image_conversion::nv12_to_bgr(infer_data->input.images[0], write_image);
+                }
+                video_writer_->write(write_image);
+                frame_count_++;
             }
             else{
-                image_conversion::nv12_to_bgr(infer_data->input.images[0], write_image);
+                cv::Mat write_image1, write_image2;
+                if(infer_data->input.image_type != INPUT_IMAGE_TYPE::NV12){
+                    write_image1 = infer_data->input.images[0];
+                    write_image2 = infer_data->input.images[1];
+                }
+                else{
+                    image_conversion::nv12_to_bgr(infer_data->input.images[0], write_image1);
+                    image_conversion::nv12_to_bgr(infer_data->input.images[1], write_image2);
+                }
+                cv::Mat concat_image;
+                cv::hconcat(write_image1, write_image2, concat_image);
+                video_writer_->write(concat_image);
+                frame_count_ ++;
             }
-            video_writer_->write(write_image);
-            frame_count_++;
         }
     }
 }

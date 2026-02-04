@@ -7,7 +7,8 @@
             "topic": {
                 "image1": "/ascamera_hp60c/camera_publisher/rgb0/image",
                 "image2": "/ascamera_hp60c/camera_publisher/depth0/image_raw",
-                "camera_info": "/ascamera_hp60c/camera_publisher/rgb0/camera_info"
+                "camera_info": "/ascamera_hp60c/camera_publisher/rgb0/camera_info",
+                "frame_id": "ascamera_hp60c_color_0"
             },
             "shape": [640,480],
             "calib": {
@@ -20,7 +21,7 @@
                 "ar_p": [0.0]
             },
             "is_master": true,
-            "publish_laserscan_fps": 5
+            "publish_laserscan_fps": 10
         }
     ]
 }

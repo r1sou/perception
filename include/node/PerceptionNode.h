@@ -316,6 +316,10 @@ public:
 
         ScopeTimer t("obstacle publish");
 
+        if(infer_data->input.render_image.empty()){
+            image_conversion::nv12_to_bgr(infer_data->input.images[0], infer_data->input.render_image);
+        }
+
         auto laserscan_message = camera_node->laserscan_message_;
         {
             time_t timestamp = time(NULL);
@@ -343,6 +347,10 @@ public:
         float y_ratio = infer_data->input.image_H / disparity.rows;
 
         auto scan_msg = std::make_unique<sensor_msgs::msg::LaserScan>();
+        auto pc_msg = std::make_unique<sensor_msgs::msg::PointCloud2>(
+            rosidl_runtime_cpp::MessageInitialization::SKIP
+        );
+        sensor_msgs::msg::PointCloud2 &point_cloud_msg = *pc_msg;
         {
             scan_msg->header.stamp = this->now();
             scan_msg->header.frame_id = camera_config.frame_id;
@@ -367,6 +375,36 @@ public:
                 scan_msg->ranges.assign(ranges_size, scan_msg->range_max + laser_config.inf_epsilon);
             }
         }
+        {
+            point_cloud_msg.header = scan_msg->header;
+            point_cloud_msg.is_dense = false;
+            point_cloud_msg.fields.resize(4);
+            point_cloud_msg.fields[0].name = "x";
+            point_cloud_msg.fields[0].offset = 0;
+            point_cloud_msg.fields[0].datatype = sensor_msgs::msg::PointField::FLOAT32;
+            point_cloud_msg.fields[0].count = 1;
+            point_cloud_msg.fields[1].name = "y";
+            point_cloud_msg.fields[1].offset = 4;
+            point_cloud_msg.fields[1].datatype = sensor_msgs::msg::PointField::FLOAT32;
+            point_cloud_msg.fields[1].count = 1;
+            point_cloud_msg.fields[2].name = "z";
+            point_cloud_msg.fields[2].offset = 8;
+            point_cloud_msg.fields[2].datatype = sensor_msgs::msg::PointField::FLOAT32;
+            point_cloud_msg.fields[2].count = 1;
+            point_cloud_msg.fields[3].name = "rgb";
+            point_cloud_msg.fields[3].offset = 12;
+            point_cloud_msg.fields[3].datatype = sensor_msgs::msg::PointField::UINT32;
+            point_cloud_msg.fields[3].count = 1;
+
+            point_cloud_msg.height = 1;
+            point_cloud_msg.point_step = 16;
+
+            point_cloud_msg.data.resize((infer_data->input.image_H / down_sample_ratio) * (infer_data->input.image_W / down_sample_ratio) * point_cloud_msg.point_step * point_cloud_msg.height);
+        }
+
+        uint32_t point_size = 0;
+        float *pcd_data_ptr = reinterpret_cast<float *>(point_cloud_msg.data.data());
+
         for (int v = 0; v < disparity.rows; v += down_sample_ratio){
             for (int u = 0; u < disparity.cols; u += down_sample_ratio){
                 int real_u = u * x_ratio;
@@ -380,6 +418,14 @@ public:
                 if (std::isnan(x) || std::isnan(y) || std::isnan(z))
                 {
                     continue;
+                }
+                if(y < 5.0 && y > -5.0){
+                    *pcd_data_ptr++ = z;
+                    *pcd_data_ptr++ = x;
+                    *pcd_data_ptr++ = y;
+                    cv::Vec3b pixel = infer_data->input.render_image.at<cv::Vec3b>(real_v, real_u);
+                    *(uint32_t *)pcd_data_ptr++ = (pixel[2] << 16) | (pixel[1] << 8) | (pixel[0] << 0);
+                    point_size++;
                 }
                 if (y > laser_config.max_height || y < laser_config.min_height)
                 {
@@ -404,11 +450,16 @@ public:
             }
         }
         {
+            point_cloud_msg.width = point_size;
+            point_cloud_msg.row_step = point_cloud_msg.point_step * point_cloud_msg.width;
+            point_cloud_msg.data.resize(point_size * point_cloud_msg.point_step *
+                                        point_cloud_msg.height);
+            camera_node->point_cloud_pub_->publish(std::move(pc_msg));
+        }
+        {
             camera_node->laser_scan_pub_->publish(std::move(scan_msg));
         }
         {
-            
-            laserscan_message["publish_time_ms"] = 
             camera_node->udp_client_->send_message(laserscan_message.dump());
         }
     }
