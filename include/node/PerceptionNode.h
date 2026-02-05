@@ -138,7 +138,7 @@ public:
                         camera_node->is_obstacle_running_.store(false);
                         std::this_thread::sleep_for(std::chrono::milliseconds(200));
                     }
-                    RCLCPP_INFO_STREAM(this->get_logger(), "start followme");
+                    RCLCPP_INFO_STREAM(this->get_logger(), fmt::format("{} start followme", get_string_date(4)).c_str());
                 }
             }
             if((!camera_node->websocket_client_->start_follow.load() && camera_node->is_followme_running_.load()) && !followme_){
@@ -146,7 +146,7 @@ public:
                 engine_->reset_track();
                 followme_task_->reset();
                 if(!followme_){
-                    RCLCPP_INFO_STREAM(this->get_logger(), "stop followme");
+                    RCLCPP_INFO_STREAM(this->get_logger(), fmt::format("{} stop followme", get_string_date(4)).c_str());
                     {
                         time_t timestamp = time(NULL);
                         std::filesystem::create_directory("/home/sunrise/Desktop/trajactory");
@@ -170,7 +170,7 @@ public:
                 return;
             }
             {
-                ScopeTimer t("follow me inference");
+                // ScopeTimer t("follow me inference");
                 followme_task_->run(infer_data, engine_);
             }
             {
@@ -296,7 +296,7 @@ public:
                 return;
             }
             {
-                ScopeTimer t("obstacle inference");
+                // ScopeTimer t("obstacle inference");
                 obstacle_task_->run(infer_data, engine_);
             }
             {
@@ -314,7 +314,7 @@ public:
             return;
         }
 
-        ScopeTimer t("obstacle publish");
+        // ScopeTimer t("obstacle publish");
 
         if(infer_data->input.render_image.empty()){
             image_conversion::nv12_to_bgr(infer_data->input.images[0], infer_data->input.render_image);

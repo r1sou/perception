@@ -85,5 +85,8 @@ inline std::string get_string_date(int level) {
     else if(level == 3){
         oss << std::put_time(tm_time, "%Y-%m-%d_%H-%M");
     }
+    else if(level == 4){
+        oss << std::put_time(tm_time, "%H-%M-%S");
+    }
     return oss.str();
 }
