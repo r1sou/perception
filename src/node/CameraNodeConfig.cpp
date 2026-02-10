@@ -86,7 +86,18 @@ void CameraNode::DualImageCallback(const sensor_msgs::msg::Image::SharedPtr msg1
                 msg2_ = msg2;
             }
         );
-    }
+    }    
+    // int64_t receive_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    // if(start_time_ == 0){
+    //     start_time_ = receive_time;
+    // }
+    // count_++;
+    // if(receive_time - start_time_ >= 1000){
+    //     float fps = count_ * 1.0 / (receive_time - start_time_) * 1000.0;
+    //     RCLCPP_INFO_STREAM(this->get_logger(), fmt::format("fps: \33[32m{:.3f}\33[0m", fps));
+    //     start_time_ = receive_time;
+    //     count_ = 0;
+    // }
 }
 
 void CameraNode::SingleImageCallback(const sensor_msgs::msg::Image::SharedPtr msg){

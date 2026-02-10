@@ -8,7 +8,7 @@
                 "image1": "/image_left_raw",
                 "image2": "/image_right_raw",
                 "camera_info": "/image_left_raw/camera_info",
-                "frame_id": "stereo_camera_frame_link"
+                "frame_id": "stereo_camera_link"
             },
             "shape": [640,480],
             "calib": {
@@ -24,4 +24,3 @@
         }
     ]
 }
-

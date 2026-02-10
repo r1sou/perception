@@ -108,13 +108,14 @@ void YOLO::postprocess(std::shared_ptr<InferenceData_t> infer_data, int index)
 
     auto scaler = infer_data->output.detect_output[index].scaler;
     auto detect_labels = infer_data->output.detect_output[index].detect_labels;
+    auto track_labels = infer_data->output.track_output.track_labels;
     
     for (int cls_id = 0; cls_id < model_config_.class_num; cls_id++)
     {
         for (auto idx : indices[cls_id])
         {
             std::string name = model_config_.class_names[cls_id];
-            if (detect_labels.size() && !detect_labels.contains(name))
+            if ((detect_labels.size() && !detect_labels.contains(name)) && (track_labels.size() && !track_labels.contains(name)))
             {
                 continue;
             }

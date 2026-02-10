@@ -155,4 +155,7 @@ public:
     std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_broadcaster_;
     std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::LaserScan>> laser_scan_pub_;
     std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::PointCloud2>> point_cloud_pub_;
+public:
+    int count_ = 0;
+    int64_t start_time_ = 0;
 };

@@ -41,11 +41,6 @@
         }
     ],
     "detect": {
-        "person": {
-            "name": "person",
-            "obj_type": 3,
-            "obj_code": 0
-        },
         "trash": {
             "name": "trash",
             "obj_type": 100,

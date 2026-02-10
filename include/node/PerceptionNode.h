@@ -5,6 +5,8 @@
 #include "model/engine.hpp"
 #include "task/followme.h"
 #include "task/obstacle.h"
+#include "task/recognize.h"
+
 
 class PerceptionNode : public rclcpp::Node
 {
@@ -57,6 +59,10 @@ public:
         this->declare_parameter("followme", false);
         this->get_parameter("followme", followme_);
         RCLCPP_INFO_STREAM(this->get_logger(), "followme: " << followme_);
+
+        this->declare_parameter("recognize", false);
+        this->get_parameter("recognize", recognize_);
+        RCLCPP_INFO_STREAM(this->get_logger(), "recognize: " << recognize_);
     }
     void configuration(){
         {
@@ -78,9 +84,9 @@ public:
         }
         {
             camera_config_ = nlohmann::json::parse(std::ifstream(camera_config_path_));
-            laser_config_ = nlohmann::json::parse(std::ifstream(laser_config_path_));
+            laser_config_  = nlohmann::json::parse(std::ifstream(laser_config_path_));
             client_config_ = nlohmann::json::parse(std::ifstream(client_config_path_));
-            model_config_ = nlohmann::json::parse(std::ifstream(model_config_path_));
+            model_config_  = nlohmann::json::parse(std::ifstream(model_config_path_));
             record_config_ = nlohmann::json::parse(std::ifstream(record_config_path_));
         }
         {
@@ -126,6 +132,10 @@ public:
         {
             obstacle_task_ = std::make_shared<Obstacle>();
             obstacle_task_->init_task();
+        }
+        {
+            recognize_task_ = std::make_shared<Recognize>();
+            recognize_task_->init_task();
         }
         RCLCPP_INFO_STREAM(this->get_logger(), "config task Finish");
     }
@@ -201,11 +211,13 @@ public:
                 // publish_followme_target(infer_data, camera_node);
             }
             {
-                publish_thread_pool_.thread_pool_->detach_task(
-                    [this, infer_data, camera_node](){
-                        publish_obstacle_target(infer_data, camera_node);
-                    }
-                );
+                if(camera_node->camera_config_.camera_type == CameraType::STEREO){
+                    publish_thread_pool_.thread_pool_->detach_task(
+                        [this, infer_data, camera_node](){
+                            publish_obstacle_target(infer_data, camera_node);
+                        }
+                    );
+                }
             }
         }
     }
@@ -266,7 +278,6 @@ public:
                     {"loc", fmt::format("{:.2f},{:.2f},{:2f}", X, Y, Z)},
                     {"size", fmt::format("{:.2f},{:.2f}", W, H)}}
                 );
-
                 trajactory_.push_back({X, Y});
                 break;
             }
@@ -276,11 +287,126 @@ public:
             websocket_client_->send_message(message.dump());
         }
     }
-    void obstacle_thread(std::shared_ptr<CameraNode> camera_node){
-        if(camera_node->camera_config_.camera_type != CameraType::STEREO){
-            RCLCPP_ERROR_STREAM(this->get_logger(), "master camera is not stereo, can not launch obstacle thread!!!");
+    //
+    void recognize_thread(std::shared_ptr<CameraNode> camera_node){
+        if(camera_node->websocket_client_->connected.load()){
+            if(camera_node->is_followme_running_.load()){
+                camera_node->is_recognize_running_.store(false);
+            }
+            else{
+                camera_node->is_recognize_running_.store(true);
+            }
+            if(!camera_node->is_recognize_running_.load()){
+                if(cv::getWindowProperty("recognize window", cv::WND_PROP_VISIBLE) > 1){
+                    cv::destroyWindow("recognize window");
+                }
+                return;
+            }
+            auto infer_data = std::make_shared<InferenceData_t>();
+            if(!camera_node->infer_common_process(infer_data,"recognize_buffer")){
+                return;
+            }
+            {
+                // ScopeTimer t("recognize inference");
+                recognize_task_->run(infer_data, engine_);
+            }
+            {
+                if(camera_node->camera_config_.camera_type == CameraType::STEREO){
+                    publish_thread_pool_.thread_pool_->detach_task(
+                        [this, infer_data, camera_node](){
+                            publish_obstacle_target(infer_data, camera_node);
+                        }
+                    );
+                }
+            }
+            {
+                publish_thread_pool_.thread_pool_->detach_task(
+                    [this, infer_data, camera_node](){
+                        publish_recognize_target(infer_data, camera_node);
+                    }
+                );
+            }
+        }
+    }
+    void publish_recognize_target(std::shared_ptr<InferenceData_t> infer_data, std::shared_ptr<CameraNode> camera_node){
+        if(!websocket_client_->connected.load()){
+            RCLCPP_ERROR_STREAM(this->get_logger(), "websocket is not connected cannot publish recognize target");
             return;
         }
+        
+        std::vector<std::string> names;
+        std::vector<std::vector<float>> bboxes;
+
+        nlohmann::json message;
+        auto &config = camera_node->camera_config_;
+        {
+            message["cmd_code"] = 0x12;
+            message["device_id"] = config.device_id;
+            time_t timestamp = time(NULL);
+            message["time_stamp"] = timestamp;
+            message["key"] = JWTGenerator::generate(client_config_["client"]["JWT"]["req_id"], client_config_["client"]["JWT"]["key"]);
+        }
+        {
+            auto data = nlohmann::json::array();
+            for(auto &detect_output: infer_data->output.detect_output){
+                for(int i = 0; i < detect_output.bboxes.size(); i++){
+                    std::string name = detect_output.names[i];
+                    if(model_config_["detect"].contains(name)){
+                        auto bbox = detect_output.bboxes[i];
+                        int box_center_x = static_cast<int>(bbox[0] + (bbox[2] - bbox[0]) / 2.0f);
+                        int box_center_y = static_cast<int>(bbox[1] + (bbox[3] - bbox[1]) / 2.0f);
+                        int box_w = static_cast<int>(bbox[2] - bbox[0]);
+                        int box_h = static_cast<int>(bbox[3] - bbox[1]);
+
+                        float X;
+                        if(infer_data->input.image_type == INPUT_IMAGE_TYPE::U16C1){
+                            X = static_cast<double>(infer_data->input.images[1].at<uint16_t>(box_center_y, box_center_x)) / 1000.0;
+                        }
+                        else{
+                            X = config.fx * config.baseline / infer_data->output.stereo_output.disparity.at<float>(box_center_y, box_center_x);
+                        }
+
+                        float Y = (config.cx - box_center_x) * X / config.fx;
+                        float Z = (config.cy - box_center_y) * X / config.fy;
+
+                        float H = 1.0 * box_h * X / config.fy;
+                        float W = 1.0 * box_w * X / config.fx;
+
+                        if(H > 0.3 || W > 0.3 || Z > 0.5){
+                            continue;
+                        }
+
+                        Z = 0.1, H = 0.1, W = 0.1;
+
+                        data.push_back(
+                            {{"name", name},
+                            {"obj_type", model_config_["detect"][name]["obj_type"].get<int>()},
+                            {"obj_code", model_config_["detect"][name]["obj_code"].get<int>()},
+                            {"loc", fmt::format("{:.2f},{:.2f},{:2f}", X, Y, Z)},
+                            {"size", fmt::format("{:.2f},{:.2f}", W, H)}}
+                        );
+
+                        bboxes.push_back(bbox);
+                        names.push_back(name);
+                    }
+                }
+            }
+            message["data"] = data;
+        }
+        {
+            if(message["data"].size() > 0){
+                websocket_client_->send_message(message.dump());
+            }
+        }
+        {
+            if(show_){
+                image_render::draw_box(infer_data->input.render_image, bboxes, names);
+                cv::imshow("recognize window", infer_data->input.render_image);
+                cv::waitKey(1);
+            }
+        }
+    }
+    void obstacle_thread(std::shared_ptr<CameraNode> camera_node){
         if(camera_node->websocket_client_->connected.load()){
             if(camera_node->is_followme_running_.load() || camera_node->is_recognize_running_.load()){
                 camera_node->is_obstacle_running_.store(false);
@@ -509,9 +635,31 @@ public:
                     if(camera_node->camera_config_.camera_type != CameraType::STEREO){
                         RCLCPP_ERROR_STREAM(this->get_logger(), "master camera is not stereo, can not launch obstacle thread!!!");
                     }
+                    else if(recognize_){
+                        RCLCPP_INFO_STREAM(this->get_logger(), "default task is recognize, can not launch obstacle thread!!!");
+                    }
                     else{
                         while(rclcpp::ok()){
                             obstacle_thread(camera_node);
+                            rate.sleep();
+                        }
+                    }
+                }
+            )
+        );
+        worker_threads_.emplace_back(
+            std::make_shared<std::thread>(
+                [this](){
+                    rclcpp::WallRate rate(10);
+                    std::shared_ptr<CameraNode> camera_node;
+                    for(int i = 0; i < camera_nodes_.size(); i++){
+                        if(camera_nodes_[i]->camera_config_.is_master){
+                            camera_node = camera_nodes_[i];
+                        }
+                    }
+                    if(recognize_){
+                        while(rclcpp::ok()){
+                            recognize_thread(camera_node);
                             rate.sleep();
                         }
                     }
@@ -561,7 +709,7 @@ public:
         }
     }
 public:
-    bool show_, debug_, record_, followme_;
+    bool show_, debug_, record_, followme_, recognize_;
 
     std::string project_root_;
 
@@ -589,6 +737,7 @@ private:
     std::shared_ptr<Engine> engine_;
     std::shared_ptr<FollowMe> followme_task_;
     std::shared_ptr<Obstacle> obstacle_task_;
+    std::shared_ptr<Recognize> recognize_task_;
     
     std::atomic<bool> is_followme_running_;
     std::atomic<bool> is_recognize_running_;
