@@ -372,7 +372,7 @@ public:
                         float H = 1.0 * box_h * X / config.fy;
                         float W = 1.0 * box_w * X / config.fx;
 
-                        if(H > 0.3 || W > 0.3 || Z > 0.5){
+                        if(H > 0.3 || W > 0.3 || Z > 0.5 || X < 0.1 || X > 4.0){
                             continue;
                         }
 
