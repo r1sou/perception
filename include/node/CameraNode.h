@@ -26,7 +26,6 @@ public:
         {
             websocket_client_->start();
         }
-        // udp send
         worker_threads_.emplace_back(
             std::make_shared<std::thread>(
                 [this](){
@@ -49,19 +48,6 @@ public:
                 }
             )
         );
-        // worker_threads_.emplace_back(
-        //     std::make_shared<std::thread>(
-        //         [this](){
-        //             rclcpp::WallRate rate(10);
-        //             while(rclcpp::ok()){
-        //                 publish_image();
-        //                 rate.sleep();
-        //             }
-        //         }
-        //     )
-        // );
-
-        // websocket send
         worker_threads_.emplace_back(
             std::make_shared<std::thread>(
                 [this](){
@@ -84,24 +70,10 @@ public:
                 }
             )
         );
-        // if(camera_config_.is_master){
-        //     worker_threads_.emplace_back(
-        //         std::make_shared<std::thread>(
-        //             [this](){
-        //                 rclcpp::WallRate rate(10);
-        //                 while(rclcpp::ok()){
-        //                     followme_thread();
-        //                     rate.sleep();
-        //                 }
-        //             }
-        //         )
-        //     );
-        // }
     }
     void send_camera_status();
     bool infer_common_process(std::shared_ptr<InferenceData_t> infer_data, std::string buffer_name);
     void record_thread();
-    // void followme_thread();
     void publish_laserscan();
     void publish_camera_info();
     void publish_image();

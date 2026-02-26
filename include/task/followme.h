@@ -9,7 +9,9 @@ public:
         release();
     }
 public:
-    void init_task(nlohmann::json task_config = nlohmann::json()) override{}
+    void init_task(nlohmann::json task_config = nlohmann::json()) override{
+
+    }
     void reset() override{
         first_frame = true;
     }
@@ -26,15 +28,28 @@ public:
             }
             first_frame = false;
         }
+        int flag = 0;
         for(int i = 0; i < infer_data->output.track_output.bboxes.size(); i++){
             if(infer_data->output.track_output.track_ids[i] == target_id){
                 infer_data->output.track_output.track_names[i] += " (target)";
+                flag = 1;
                 break;
             }
         }
+        if(flag == 0){
+            lost_target_frame_count++;
+        }
+        judge_lost_target();
     }
     void release() override{}
+    void judge_lost_target(){
+        if(lost_target_frame_count > 30){
+            first_frame = true;
+            lost_target_frame_count = 0;
+        }
+    }
 public:
     bool first_frame = true;
+    int lost_target_frame_count = 0;
     int target_id = -1;
 };

@@ -236,6 +236,24 @@ public:
             message["key"] = JWTGenerator::generate(client_config_["client"]["JWT"]["req_id"], client_config_["client"]["JWT"]["key"]);
         }
         {
+            float fx, fy, cx, cy, baseline;
+            float w_ratio, h_ratio;
+            if(infer_data->input.image_type == INPUT_IMAGE_TYPE::U16C1){
+                w_ratio = 1.0;
+                h_ratio = 1.0;
+            }
+            else{
+                w_ratio = camera_node->camera_config_.image_width * 1.0 / infer_data->output.stereo_output.disparity.cols;
+                h_ratio = camera_node->camera_config_.image_height * 1.0 / infer_data->output.stereo_output.disparity.rows;
+            }
+            {
+                fx       = config.fx / w_ratio;
+                fy       = config.fy / h_ratio;
+                cx       = config.cx / w_ratio;
+                cy       = config.cy / h_ratio;
+                baseline = config.baseline;
+            }
+
             auto data = nlohmann::json::array();
             for(int i = 0; i < infer_data->output.track_output.bboxes.size(); i++){
                 if(infer_data->output.track_output.track_ids[i] != followme_task_->target_id){
@@ -247,12 +265,17 @@ public:
                 int box_w = static_cast<int>(track_output.bboxes[i][2] - track_output.bboxes[i][0]);
                 int box_h = static_cast<int>(track_output.bboxes[i][3] - track_output.bboxes[i][1]);
 
+                box_center_x = static_cast<int>(box_center_x * 1.0 / w_ratio);
+                box_center_y = static_cast<int>(box_center_y * 1.0 / h_ratio);
+                box_w = static_cast<int>(box_w * 1.0 / w_ratio);
+                box_h = static_cast<int>(box_h * 1.0 / h_ratio);
+
                 float X;
                 if(infer_data->input.image_type == INPUT_IMAGE_TYPE::U16C1){
                     X = static_cast<double>(infer_data->input.images[1].at<uint16_t>(box_center_y, box_center_x)) / 1000.0;
                 }
                 else{
-                    X = config.fx * config.baseline / infer_data->output.stereo_output.disparity.at<float>(box_center_y, box_center_x);
+                    X = fx * baseline / infer_data->output.stereo_output.disparity.at<float>(box_center_y, box_center_x);
                 }
                 {
                     if(X <= 0.1 && last_trajactory_ != 0.0){
@@ -263,11 +286,11 @@ public:
                     }
                 }
 
-                float Y = (config.cx - box_center_x) * X / config.fx;
-                float Z = (config.cy - box_center_y) * X / config.fy;
+                float Y = (cx - box_center_x) * X / fx;
+                float Z = (cy - box_center_y) * X / fy;
 
-                float H = 1.0 * box_h * X / config.fy;
-                float W = 1.0 * box_w * X / config.fx;
+                float H = 1.0 * box_h * X / fy;
+                float W = 1.0 * box_w * X / fx;
 
                 Z = 0.1, H = 0.1, W = 0.1;
 
@@ -347,6 +370,24 @@ public:
             message["key"] = JWTGenerator::generate(client_config_["client"]["JWT"]["req_id"], client_config_["client"]["JWT"]["key"]);
         }
         {
+            float fx, fy, cx, cy, baseline;
+            float w_ratio, h_ratio;
+            if(infer_data->input.image_type == INPUT_IMAGE_TYPE::U16C1){
+                w_ratio = 1.0;
+                h_ratio = 1.0;
+            }
+            else{
+                w_ratio = camera_node->camera_config_.image_width * 1.0 / infer_data->output.stereo_output.disparity.cols;
+                h_ratio = camera_node->camera_config_.image_height * 1.0 / infer_data->output.stereo_output.disparity.rows;
+            }
+            {
+                fx       = config.fx / w_ratio;
+                fy       = config.fy / h_ratio;
+                cx       = config.cx / w_ratio;
+                cy       = config.cy / h_ratio;
+                baseline = config.baseline;
+            }
+
             auto data = nlohmann::json::array();
             for(auto &detect_output: infer_data->output.detect_output){
                 for(int i = 0; i < detect_output.bboxes.size(); i++){
@@ -358,19 +399,24 @@ public:
                         int box_w = static_cast<int>(bbox[2] - bbox[0]);
                         int box_h = static_cast<int>(bbox[3] - bbox[1]);
 
+                        box_center_x = static_cast<int>(box_center_x * 1.0 / w_ratio);
+                        box_center_y = static_cast<int>(box_center_y * 1.0 / h_ratio);
+                        box_w = static_cast<int>(box_w * 1.0 / w_ratio);
+                        box_h = static_cast<int>(box_h * 1.0 / h_ratio);
+
                         float X;
                         if(infer_data->input.image_type == INPUT_IMAGE_TYPE::U16C1){
                             X = static_cast<double>(infer_data->input.images[1].at<uint16_t>(box_center_y, box_center_x)) / 1000.0;
                         }
                         else{
-                            X = config.fx * config.baseline / infer_data->output.stereo_output.disparity.at<float>(box_center_y, box_center_x);
+                            X = fx * baseline / infer_data->output.stereo_output.disparity.at<float>(box_center_y, box_center_x);
                         }
 
-                        float Y = (config.cx - box_center_x) * X / config.fx;
-                        float Z = (config.cy - box_center_y) * X / config.fy;
+                        float Y = (cx - box_center_x) * X / fx;
+                        float Z = (cy - box_center_y) * X / fy;
 
-                        float H = 1.0 * box_h * X / config.fy;
-                        float W = 1.0 * box_w * X / config.fx;
+                        float H = 1.0 * box_h * X / fy;
+                        float W = 1.0 * box_w * X / fx;
 
                         if(H > 0.3 || W > 0.3 || Z > 0.5 || X < 0.1 || X > 4.0){
                             continue;
@@ -457,20 +503,20 @@ public:
         int down_sample_ratio = laser_config.down_sample_ratio;
 
         auto &disparity = infer_data->output.stereo_output.disparity;
-
-        float fx       = camera_config.fx;
-        float fy       = camera_config.fy;
-        float cx       = camera_config.cx;
-        float cy       = camera_config.cy;
-        float baseline = camera_config.baseline;
-
-        fx = disparity.rows / infer_data->input.image_H * fx;
-        fy = disparity.cols / infer_data->input.image_W * fy;
-        cx = disparity.rows / infer_data->input.image_H * cx;
-        cy = disparity.cols / infer_data->input.image_W * cy;
-
-        float x_ratio = infer_data->input.image_W / disparity.cols;
-        float y_ratio = infer_data->input.image_H / disparity.rows;
+        
+        float fx, fy, cx, cy, baseline;
+        float w_ratio, h_ratio;
+        {
+            w_ratio = camera_config.image_width * 1.0 / disparity.cols;
+            h_ratio = camera_config.image_height * 1.0 / disparity.rows;
+        }
+        {
+            fx       = camera_config.fx / w_ratio;
+            fy       = camera_config.fy / h_ratio;
+            cx       = camera_config.cx / w_ratio;
+            cy       = camera_config.cy / h_ratio;
+            baseline = camera_config.baseline;
+        }
 
         auto scan_msg = std::make_unique<sensor_msgs::msg::LaserScan>();
         auto pc_msg = std::make_unique<sensor_msgs::msg::PointCloud2>(
@@ -525,21 +571,26 @@ public:
             point_cloud_msg.height = 1;
             point_cloud_msg.point_step = 16;
 
-            point_cloud_msg.data.resize((infer_data->input.image_H / down_sample_ratio) * (infer_data->input.image_W / down_sample_ratio) * point_cloud_msg.point_step * point_cloud_msg.height);
+            point_cloud_msg.data.resize((disparity.cols / down_sample_ratio) * (disparity.rows / down_sample_ratio) * point_cloud_msg.point_step * point_cloud_msg.height);
         }
 
         uint32_t point_size = 0;
         float *pcd_data_ptr = reinterpret_cast<float *>(point_cloud_msg.data.data());
 
+        // cv::Mat mask(camera_config.image_height, camera_config.image_width, CV_8UC3, cv::Scalar(255, 255, 255));
+
         for (int v = 0; v < disparity.rows; v += down_sample_ratio){
             for (int u = 0; u < disparity.cols; u += down_sample_ratio){
-                int real_u = u * x_ratio;
-                int real_v = v * y_ratio;
+
+                int real_u = std::min(static_cast<int>(std::round(u * w_ratio)), 
+                      infer_data->input.render_image.cols - 1);
+                int real_v = std::min(static_cast<int>(std::round(v * h_ratio)), 
+                      infer_data->input.render_image.rows - 1);
 
                 float disparity_value = disparity.at<float>(v, u);
                 float z = baseline * fx / disparity_value;
-                float x = z * (cx - real_u) / fx;
-                float y = z * (cy - real_v) / fy;
+                float x = z * (cx - u) / fx;
+                float y = z * (cy - v) / fy;
 
                 if (std::isnan(x) || std::isnan(y) || std::isnan(z))
                 {
@@ -553,6 +604,7 @@ public:
                     *(uint32_t *)pcd_data_ptr++ = (pixel[2] << 16) | (pixel[1] << 8) | (pixel[0] << 0);
                     point_size++;
                 }
+
                 if (y > laser_config.max_height || y < laser_config.min_height)
                 {
                     continue;
@@ -588,6 +640,9 @@ public:
         {
             camera_node->udp_client_->send_message(laserscan_message.dump());
         }
+
+        // cv::imshow("render_image", infer_data->input.render_image.mul(mask));
+        // cv::waitKey(1);
     }
     void start(){
         executor_ = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
