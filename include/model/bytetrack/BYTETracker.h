@@ -59,6 +59,7 @@ public:
 		tracked_stracks.clear();
 		lost_stracks.clear();
 		removed_stracks.clear();
+		kalman_filter = byte_kalman::KalmanFilter();
 	}
 public:
 	std::vector<STrack> update(const std::vector<Object> &objects);
