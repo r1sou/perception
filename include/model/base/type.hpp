@@ -39,6 +39,12 @@ struct TRACK_OUTPUT{
     
     std::vector<std::string> track_names;
     nlohmann::json track_labels;
+
+    bool lost_target = true;
+
+    // bool is_lost_target = true;
+    // bool is_find_target = false;
+    int lost_target_frame_count = 0;
 };
 // output
 struct MODEL_OUTPUT{

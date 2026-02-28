@@ -33,22 +33,42 @@ public:
             if(infer_data->output.track_output.track_ids[i] == target_id){
                 infer_data->output.track_output.track_names[i] += " (target)";
                 flag = 1;
+
+                lost_target_frame_count = 0;
+                lost_target = false;
                 break;
             }
         }
+
         if(flag == 0){
             lost_target_frame_count++;
         }
-        judge_lost_target();
+
+        {
+            if(lost_target_frame_count > 30){
+                // reset
+                first_frame = true;
+                lost_target_frame_count = 0;
+                lost_target = true;
+            }
+        }
+
+        infer_data->output.track_output.lost_target = lost_target;
+
+
+        // judge_lost_target();
     }
     void release() override{}
-    void judge_lost_target(){
-        if(lost_target_frame_count > 30){
-            first_frame = true;
-            lost_target_frame_count = 0;
-        }
-    }
+    // void judge_lost_target(){
+    //     if(lost_target_frame_count > 30){
+    //         first_frame = true;
+    //         lost_target_frame_count = 0;
+    //         lost_target = true;
+    //     }
+    // }
 public:
+    bool lost_target = true;
+
     bool first_frame = true;
     int lost_target_frame_count = 0;
     int target_id = -1;

@@ -182,6 +182,10 @@ public:
             {
                 // ScopeTimer t("follow me inference");
                 followme_task_->run(infer_data, engine_);
+
+                if(infer_data->output.track_output.lost_target){
+                    engine_->reset_track();
+                }
             }
             {
                 if(show_){
@@ -195,6 +199,12 @@ public:
                         for(auto &detect_output: infer_data->output.detect_output){
                             image_render::draw_box(infer_data->input.render_image, detect_output.bboxes, detect_output.names);
                         }
+                    }
+                    if(infer_data->output.track_output.lost_target){
+                        cv::putText(infer_data->input.render_image, "Lost Target", cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 0, 255), 2);
+                    }
+                    else{
+                        cv::putText(infer_data->input.render_image, "Follow Target", cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 1, cv::Scalar(0, 255, 0), 2);
                     }
                 }
                 if(show_){
