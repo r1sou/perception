@@ -45,11 +45,18 @@
             "name": "trash",
             "obj_type": 100,
             "obj_code": 2
+        },
+        "person": {
+            "name": "person",
+            "obj_type": 3,
+            "obj_code": 0
         }
     },
     "track": {
         "person": {
-            "name": "person"
+            "name": "person",
+            "obj_type": 3,
+            "obj_code": 0
         }
     }
 }
