@@ -7,8 +7,13 @@ import pexpect
 import psutil
 import os
 
+
+log_txt = "/home/sunrise/Desktop/runtimelog.txt"
+log_fo = open(log_txt, "a")
+
 def log_print(string):
-    print(f"[{datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}] {string}")
+    print(f"[{datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}] {string}", file=log_fo)
+    log_fo.flush()
 
 
 class AutoUpdate:
@@ -27,6 +32,11 @@ class AutoUpdate:
         self.log_txt = os.path.join(self.temp_dir, "updatelog.txt")
 
     def fingerprint(self):
+        cmd = f"ssh-keygen -R {self.ip}"
+        log_print(f"command: {cmd}")
+        subprocess.run(cmd, shell=True, executable="/bin/bash", capture_output=True, text=True, timeout=10)
+        log_print("fingerprint removed")
+
         cmd = f"ssh-keyscan -t ed25519 {self.ip} >> ~/.ssh/known_hosts"
         log_print(f"command: {cmd}")
         subprocess.run(cmd, shell=True, executable="/bin/bash", capture_output=True, text=True, timeout=10)
@@ -60,7 +70,9 @@ class AutoUpdate:
         log_print("Cloning...")
 
         if(os.path.exists(f"{self.temp_dir}/ai_algorithm_bin")):
-            shutil.rmtree(f"{self.temp_dir}/ai_algorithm_bin")
+            # shutil.rmtree(f"{self.temp_dir}/ai_algorithm_bin")
+            log_print("ai_algorithm_bin exists, try to install")
+            return True
         if(not self.clone(self.git_address, self.temp_dir, self.password)):
             log_print("try to clone project but failed")
             return False
@@ -98,6 +110,7 @@ class AutoUpdate:
                 f"{self.temp_dir}/ai_algorithm_bin", 
                 "/root/workspace/install/"
             )
+            shutil.rmtree(f"{self.temp_dir}/ai_algorithm_bin")
 
             with open(self.log_txt, "a") as f:
                 f.write(f"{datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')} update executable finished\n")
@@ -121,10 +134,17 @@ class AutoUpdate:
 
     def run(self):
 
+        log_print("waiting for 120 seconds")
+        time.sleep(120)
+
+        self.fingerprint()
+
         result = subprocess.run(
             "systemctl stop perception.service",
             shell=True, executable="/bin/bash", capture_output=True, text=True, timeout=300
         )
+
+        log_print(f"systemctl stop perception.service")
 
         if(self.git_clone()):
             self.install()
@@ -133,6 +153,7 @@ class AutoUpdate:
             "systemctl restart perception.service",
             shell=True, executable="/bin/bash", capture_output=True, text=True, timeout=300
         )
+        log_print(f"systemctl restart perception.service")
 
         time.sleep(600)
 
@@ -147,7 +168,7 @@ AutoUpdate_t = AutoUpdate(
     password="passgit5646",
     executable_path="/root/workspace/install/perception/lib/perception/perception_node"
 )
-AutoUpdate_t.fingerprint()
+# AutoUpdate_t.fingerprint()
 AutoUpdate_t.run()
 
 # now_str = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
