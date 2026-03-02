@@ -98,5 +98,6 @@ install(FILES ${LAUNCH_FILES} DESTINATION share/${PROJECT_NAME}/launch)
 install(DIRECTORY assets/config DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY assets/weights DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY scripts DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY install DESTINATION share/${PROJECT_NAME})
 
 ament_package()
