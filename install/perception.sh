@@ -1,3 +1,2 @@
-cd /home/sunrise/workspace
-source install/setup.bash
-ros2 launch perception launch.py
+source /root/workspace/install/setup.bash
+ros2 launch perception launch.py recognize:=False
