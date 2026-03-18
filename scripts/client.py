@@ -59,6 +59,7 @@ def auto_update_server_ip(args):
     for ip in get_wired_ip():
         server_ip = get_server_ip(ip.split('.')[2])
         if server_ip:
+            host_ip = ip
             client_config_path = args.file
             with open(client_config_path, 'r') as f:
                 client_config = json.load(f)
