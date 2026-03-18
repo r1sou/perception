@@ -75,7 +75,7 @@ def auto_update_server_ip(args):
 
     fingerprint(server_ip)
 
-    cmd = f"scp -r /home/sunrise/Desktop/ip.txt swbot@{host_ip}:/home/swbot/Desktop/"
+    cmd = f"scp -r /home/sunrise/Desktop/ip.txt swbot@{server_ip}:/home/swbot/Desktop/"
     child = pexpect.spawn("/bin/bash", ["-c", cmd], timeout=60, encoding='utf-8')
 
     try:
