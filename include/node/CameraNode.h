@@ -130,4 +130,6 @@ public:
 public:
     int count_ = 0;
     int64_t start_time_ = 0;
+
+    int total_frame_count_ = 0;
 };

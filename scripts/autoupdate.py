@@ -8,8 +8,8 @@ import psutil
 import os
 
 
-log_txt = "/home/sunrise/Desktop/runtimelog.txt"
-log_fo = open(log_txt, "a")
+# log_txt = "/home/sunrise/Desktop/runtimelog.txt"
+# log_fo = open(log_txt, "a")
 
 def log_print(string):
     print(f"[{datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}] {string}", file=log_fo)
@@ -129,7 +129,7 @@ class AutoUpdate:
                 break
             sleep_time = min(3600, remaining_time)
             time.sleep(sleep_time)
-
+            
             # self.install()
 
     def run(self):
@@ -158,7 +158,25 @@ class AutoUpdate:
         time.sleep(600)
 
         while True:
+            self.clear_video_file()
             self.run_once()
+
+    def clear_video_file(self):
+        current_time = datetime.datetime.now()
+
+        save_video_path = "/home/sunrise/Desktop/dataset/camera-5"
+
+        file_list = os.listdir(save_video_path)
+
+        if len(file_list) <= 1:
+            return
+
+        for file in file_list:
+            if file.endswith(".avi") or file.endswith(".mp4"):
+                record_time = datetime.datetime.strptime(file.split(".")[0], "%Y-%m-%d_%H-%M")
+                if (current_time - record_time) > datetime.timedelta(days=1):
+                    os.remove(os.path.join(save_video_path, file))
+                    log_print(f"clear video file: {file}")
 
 AutoUpdate_t = AutoUpdate(
     interval=1,
@@ -168,8 +186,4 @@ AutoUpdate_t = AutoUpdate(
     password="passgit5646",
     executable_path="/root/workspace/install/perception/lib/perception/perception_node"
 )
-# AutoUpdate_t.fingerprint()
 AutoUpdate_t.run()
-
-# now_str = datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-# print(now_str)

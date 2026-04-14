@@ -77,12 +77,12 @@ def auto_update_server_ip(args):
     fingerprint(server_ip)
 
     cmd = f"scp -r /home/sunrise/Desktop/ip.txt swbot@{server_ip}:/home/swbot/Desktop/"
-    child = pexpect.spawn("/bin/bash", ["-c", cmd], timeout=60, encoding='utf-8')
+    child = pexpect.spawn("/bin/bash", ["-c", cmd], timeout=10, encoding='utf-8')
 
     try:
         child.expect(r"password:", timeout=10)
         child.sendline("passswbot")
-        child.expect(pexpect.EOF, timeout=120)
+        child.expect(pexpect.EOF, timeout=10)
     except pexpect.exceptions.TIMEOUT:
         log_print("Timeout, password prompt not appeared or too slow")
         return False

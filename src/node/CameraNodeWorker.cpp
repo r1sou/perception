@@ -146,17 +146,26 @@ void CameraNode::record_thread()
                 if (infer_data->input.image_type != INPUT_IMAGE_TYPE::NV12)
                 {
                     write_image1 = infer_data->input.images[0];
-                    write_image2 = infer_data->input.images[1];
+                    // write_image2 = infer_data->input.images[1];
                 }
                 else
                 {
                     image_conversion::nv12_to_bgr(infer_data->input.images[0], write_image1);
-                    image_conversion::nv12_to_bgr(infer_data->input.images[1], write_image2);
+                    // image_conversion::nv12_to_bgr(infer_data->input.images[1], write_image2);
                 }
-                cv::Mat concat_image;
-                cv::hconcat(write_image1, write_image2, concat_image);
-                video_writer_->write(concat_image);
+                // cv::Mat concat_image;
+                // cv::hconcat(write_image1, write_image2, concat_image);
+                // video_writer_->write(concat_image);
+
+                video_writer_->write(write_image1);
+
                 frame_count_++;
+            }
+
+
+            if(frame_count_ >= 10 * 60 * 60 * 2){ // 2 hours with 10 fps
+                video_writer_->release();
+                RCLCPP_INFO_STREAM(this->get_logger(), fmt::format("stop record, save path: {}, total frame: {}", save_path_, frame_count_).c_str());
             }
         }
     }
