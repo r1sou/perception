@@ -86,7 +86,7 @@ bool CameraNode::infer_common_process(std::shared_ptr<InferenceData_t> infer_dat
 
 void CameraNode::record_thread()
 {
-    if (websocket_client_->connected.load())
+    if (websocket_client_->connected.load() || record_)
     {
         if ((websocket_client_->start_cam_record.load() && !is_record_running_.load()) || record_)
         {
@@ -121,7 +121,7 @@ void CameraNode::record_thread()
                 save_path_ = fmt::format("{}/camera-{}", record_config_.save_dir, camera_config_.device_id);
                 std::filesystem::create_directories(save_path_);
                 save_path_ += "/" + get_string_date(3) + record_config_.suffix;
-                int width = camera_config_.camera_type == CameraType::STEREO ? record_config_.image_width * 2 : record_config_.image_width;
+                int width = record_config_.image_width;
                 video_writer_ = std::make_shared<cv::VideoWriter>(
                     save_path_, record_config_.fourcc, record_config_.fps,
                     cv::Size(width, record_config_.image_height));

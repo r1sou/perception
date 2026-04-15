@@ -8,8 +8,8 @@ import psutil
 import os
 
 
-# log_txt = "/home/sunrise/Desktop/runtimelog.txt"
-# log_fo = open(log_txt, "a")
+log_txt = "/home/sunrise/Desktop/runtimelog.txt"
+log_fo = open(log_txt, "a")
 
 def log_print(string):
     print(f"[{datetime.datetime.now().strftime('%Y-%m-%d_%H:%M:%S')}] {string}", file=log_fo)
